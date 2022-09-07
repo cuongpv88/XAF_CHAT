@@ -21,11 +21,13 @@ using DevExpress.ExpressApp.Security.Authentication.ClientServer;
 using DevExpress.ExpressApp.Core;
 using XAF_CHAT.Module.BusinessObjects;
 using ERP.WebApi.Services.WebApi;
+using Blazored.Toast;
 
 namespace XAF_CHAT.Blazor.Server;
 
 public class Startup {
-    public Startup(IConfiguration configuration) {
+    public Startup(IConfiguration configuration)
+    {
         Configuration = configuration;
     }
 
@@ -39,6 +41,7 @@ public class Startup {
         services.AddRazorPages();
         services.AddServerSideBlazor();
         services.AddHttpContextAccessor();
+        services.AddBlazoredToast();
         services.AddHttpClient<ChatManager>();
         services.AddScoped<IAuthenticationTokenProvider, JwtTokenProviderService>();
         services.AddScoped<CircuitHandler, CircuitHandlerProxy>();

@@ -1,4 +1,8 @@
-﻿using XAF_CHAT.Module.BusinessObjects;
+﻿using DevExpress.Data.Filtering;
+using DevExpress.ExpressApp;
+using DevExpress.ExpressApp.Blazor.Services;
+using System.ServiceModel.Channels;
+using XAF_CHAT.Module.BusinessObjects;
 
 namespace XAF_CHAT.Blazor.Server.Services
 {
@@ -7,8 +11,40 @@ namespace XAF_CHAT.Blazor.Server.Services
     /// </summary>
     public interface IChatManager
     {
-        Task<List<ApplicationUser>> GetUsersAsync();
-        Task SaveMessageAsync(ChatMessage message);
+        Task<IList<ApplicationUser>> GetUsersAsync(Guid currentUserId);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="currentUserID"></param>
+        /// <param name="fromUserID"></param>
+        /// <returns></returns>
+        Task<IList<ChatMessage>> GetChatsAsync(Guid currentUserID, Guid fromUserID);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="currentUserID"></param>
+        /// <param name="fromUserID"></param>
+        /// <returns></returns>
+        Task<ChatMessage> GetChatAsync(Guid currentUserID, Guid fromUserID);
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="currentUserId"></param>
+        /// <param name="fromUserId"></param>
+        /// <returns></returns>
+        Task SaveMessageAsync(string message, Guid currentUserId, Guid fromUserId);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="currentUserId"></param>
+        /// <param name="fromUserId"></param>
+        /// <param name="chat"></param>
+        /// <returns></returns>
+        Task SaveMessageAsync(string message, Guid currentUserId, Guid fromUserId, ChatMessage chat);
+
         Task<List<ChatMessage>> GetConversationAsync(string contactId);
         Task<ApplicationUser> GetUserDetailsAsync(string userId);
     }
@@ -19,10 +55,13 @@ namespace XAF_CHAT.Blazor.Server.Services
     {
         private readonly IServiceProvider _serviceProvider;
         private HttpClient _httpClient;
+        private readonly IXafApplicationProvider _applicationProvider;
         public ChatManager(
+            IXafApplicationProvider applicationProvider,
             IServiceProvider serviceProvider,
             HttpClient httpClient)
         {
+            _applicationProvider = applicationProvider;
             _serviceProvider = serviceProvider;
             _httpClient = httpClient;
         }
@@ -30,15 +69,43 @@ namespace XAF_CHAT.Blazor.Server.Services
         /// <summary>
         /// 
         /// </summary>
-        public HttpClient HttpClient 
-        { 
-            get
-            {
-                HttpContext context = _serviceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext;
-                _httpClient.BaseAddress = new Uri($"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}");
+        //public HttpClient HttpClient 
+        //{
+        //    get
+        //    {
+        //        HttpContext context = _serviceProvider.GetService<IHttpContextAccessor>().HttpContext;
+        //        _httpClient.BaseAddress = new Uri($"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}");
 
-                return _httpClient;
-            } 
+        //        return _httpClient;
+        //    }
+        //}
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="contactId"></param>
+        /// <returns></returns>
+        public async Task<IList<ChatMessage>> GetChatsAsync(Guid currentUserID, Guid fromUserID)
+        {
+            XafApplication application = _applicationProvider.GetApplication();
+            IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
+
+            return obs.GetObjects<ChatMessage>(CriteriaOperator.FromLambda<ChatMessage>(c => c.ToUser.Oid == currentUserID && c.FromUser.Oid == fromUserID));
+            //return await HttpClient.GetFromJsonAsync<List<ChatMessage>>($"api/chat/{contactId}");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="contactId"></param>
+        /// <returns></returns>
+        public async Task<ChatMessage> GetChatAsync(Guid currentUserID, Guid fromUserID)
+        {
+            XafApplication application = _applicationProvider.GetApplication();
+            IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
+
+            return obs.FirstOrDefault<ChatMessage>(c => c.ToUser.Oid == currentUserID && c.FromUser.Oid == fromUserID && c.CreatedDate.Date == DateTime.Now.Date);
+            //return await HttpClient.GetFromJsonAsync<List<ChatMessage>>($"api/chat/{contactId}");
         }
 
         /// <summary>
@@ -48,21 +115,26 @@ namespace XAF_CHAT.Blazor.Server.Services
         /// <returns></returns>
         public async Task<List<ChatMessage>> GetConversationAsync(string contactId)
         {
-            return await HttpClient.GetFromJsonAsync<List<ChatMessage>>($"api/chat/{contactId}");
+            //return await HttpClient.GetFromJsonAsync<List<ChatMessage>>($"api/chat/{contactId}");
+            throw new NotImplementedException();
         }
         public async Task<ApplicationUser> GetUserDetailsAsync(string userId)
         {
-            return await HttpClient.GetFromJsonAsync<ApplicationUser>($"api/chat/users/{userId}");
+            //return await HttpClient.GetFromJsonAsync<ApplicationUser>($"api/chat/users/{userId}");
+            throw new NotImplementedException();
         }
         /// <summary>
         /// Danh sách người dùng
         /// </summary>
         /// <returns></returns>
-        public async Task<List<ApplicationUser>> GetUsersAsync()
+        public async Task<IList<ApplicationUser>> GetUsersAsync(Guid currentUserId)
         {
-            //HttpContext context = _serviceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext;
-            var data = await HttpClient.GetFromJsonAsync<List<ApplicationUser>>("/api/odata/ApplicationUser");
-            return data;
+            //HttpContext context = _serviceProvider.GetService<IHttpContextAccessor>().HttpContext;
+            //var data = await HttpClient.GetFromJsonAsync<List<ApplicationUser>>("/api/odata/ApplicationUser");
+
+            XafApplication application = _applicationProvider.GetApplication();
+            IObjectSpace obs = application.CreateObjectSpace(typeof(ApplicationUser));
+            return obs.GetObjects<ApplicationUser>(CriteriaOperator.FromLambda<ApplicationUser>(c => c.Oid != currentUserId));
         }
 
         /// <summary>
@@ -70,9 +142,69 @@ namespace XAF_CHAT.Blazor.Server.Services
         /// </summary>
         /// <param name="message"></param>
         /// <returns></returns>
-        public async Task SaveMessageAsync(ChatMessage message)
+        public async Task SaveMessageAsync(string message, Guid currentUserId, Guid fromUserId)
         {
-            await HttpClient.PostAsJsonAsync("api/chat", message);
+            //await HttpClient.PostAsJsonAsync("api/chat", message);
+            XafApplication application = _applicationProvider.GetApplication();
+            IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
+
+            var ToUser = obs.GetObjectByKey<ApplicationUser>(currentUserId);
+            var FromUser = obs.GetObjectByKey<ApplicationUser>(fromUserId);
+
+            ChatMessage chat = GetChatAsync(currentUserId, fromUserId).GetAwaiter().GetResult();
+
+            if (chat == null)
+            {
+                chat = obs.CreateObject<ChatMessage>();
+                chat.ToUser = ToUser;
+                chat.FromUser = FromUser;
+                chat.CreatedDate = DateTime.Now;
+                chat.Save();
+            }
+
+            SubMessage sub = new SubMessage(chat.Session);
+            sub.Chat = chat;
+            sub.Message = message;
+            sub.CreatedDate = DateTime.Now;
+            sub.Owner = FromUser;
+            sub.Save();
+
+            obs.CommitChanges();
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        public async Task SaveMessageAsync(string message, Guid currentUserId, Guid fromUserId, ChatMessage chat)
+        {
+            //await HttpClient.PostAsJsonAsync("api/chat", message);
+            //XafApplication application = _applicationProvider.GetApplication();
+            //IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
+            //var ToUser = obs.GetObjectByKey<ApplicationUser>(currentUserId);
+            //var FromUser = obs.GetObjectByKey<ApplicationUser>(fromUserId);
+
+            //if (chat == null)
+            //{
+            //    chat = obs.CreateObject<ChatMessage>();
+            //    chat.ToUser = ToUser;
+            //    chat.FromUser = FromUser;
+            //    chat.CreatedDate = DateTime.Now;
+            //    chat.Save();
+            //}
+
+            //SubMessage sub = new SubMessage(chat.Session);
+            //sub.Chat = chat;
+            //sub.Message = message;
+            //sub.CreatedDate = DateTime.Now;
+            //sub.Owner = ToUser;
+            //sub.Save();
+
+            //obs.CommitChanges();
+
+            await Task.CompletedTask;
         }
     }
 }

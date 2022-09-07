@@ -1,7 +1,11 @@
 ﻿using System.ComponentModel;
 using System.Text;
 using DevExpress.ExpressApp;
+using DevExpress.ExpressApp.CloneObject;
+using DevExpress.ExpressApp.Model;
 using DevExpress.ExpressApp.Security;
+using DevExpress.ExpressApp.SystemModule;
+using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl.PermissionPolicy;
 using DevExpress.Xpo;
 
@@ -9,6 +13,12 @@ namespace XAF_CHAT.Module.BusinessObjects;
 
 [MapInheritance(MapInheritanceType.ParentTable)]
 [DefaultProperty(nameof(UserName))]
+[ModelDefault(nameof(IModelClassCloneable.IsCloneable), "True")]
+[ModelDefault(nameof(IModelClassShowAutoFilterRow.DefaultListViewShowAutoFilterRow), "True"),
+        ModelDefault(nameof(IModelListViewShowFindPanel.ShowFindPanel), "True"),
+        ModelDefault(nameof(IModelListView.IsGroupPanelVisible), "True")]
+[VisibleInReports, ListViewAutoFilterRow(true), LookupEditorMode(LookupEditorMode.AllItems)]
+[DefaultListViewOptions(MasterDetailMode.ListViewOnly, true, NewItemRowPosition.Top)]
 public class ApplicationUser : PermissionPolicyUser, IObjectSpaceLink, ISecurityUserWithLoginInfo {
     public ApplicationUser(Session session) : base(session) { }
 

@@ -9,9 +9,14 @@
 @using Microsoft.JSInterop
 @using DevExpress.Blazor
 @using DevExpress.ExpressApp.Blazor.Components
+@using Blazored.Toast
+@using Blazored.Toast.Services
+
 @using XAF_CHAT.Blazor.Server
 @using XAF_CHAT.Blazor.Server.Services
 
 @inject NavigationManager _navigationManager
 @inject IJSRuntime _jsRuntime
 @inject IChatManager _chatManager
+
+@inject IToastService toastService

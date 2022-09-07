@@ -16,6 +16,11 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <None Include="wwwroot\js\scroll.js" />
+    <None Include="wwwroot\js\sounds.js" />
+  </ItemGroup>
+  <ItemGroup>
+	<PackageReference Include="Blazored.Toast" Version="3.2.2" />
 	<PackageReference Include="DevExpress.ExpressApp.Api.Xpo.All" Version="22.1.5-pre-22228" />
     <PackageReference Include="DevExpress.ExpressApp.Blazor" Version="22.1.5-pre-22228" />
     <PackageReference Include="DevExpress.ExpressApp.CodeAnalysis" Version="22.1.5-pre-22228" />
