@@ -1,0 +1,220 @@
+﻿@using DevExpress.Data.Filtering
+@using DevExpress.ExpressApp
+@using DevExpress.ExpressApp.Blazor.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Options
+@using DevExpress.ExpressApp.Utils
+@using XAF_CHAT.Module.BusinessObjects
+@*@inject IOptionsSnapshot<ThemeOptions> ThemeOptions
+@inject ILanguageSwitcherService LanguageSwitcherService*@
+@inject DevExpress.ExpressApp.Blazor.Services.IXafApplicationProvider ApplicationProvider
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<SizeModeContainer>
+    <div id=@MainElementId data-action-name="ThemeSwitcher" class="theme-settings d-flex align-items-center pe-2">
+        <button class="theme-button p-0 btn btn-secondary btn-header" onclick="xaf.closeOutsideClickController.toggle('@MainElementId', '.theme-settings-modal-backdrop')" href="javascript:;">
+            <XafImage Styles="margin: auto;" Size="24" ImageName="Glyph_Message" />
+        </button>
+        <div class="settings-bar card rounded-0">
+            <nav class="themes-menu">
+                <ul class="nav nav-pills">
+                    <li class="nav-item theme-group card rounded-0 border-top-0 border-start-0 border-end-0 w-100">@CaptionHelper.GetLocalizedText("VisualComponents/ThemeSwitcher", "SelectLanguage")</li>
+                    @foreach (var user in _chatManager.GetUsersAsync().GetAwaiter().GetResult())//objectSpace.GetObjects<ApplicationUser>(CriteriaOperator.FromLambda<ApplicationUser>(c=>c.Oid != CurrentUser.Oid )))
+                    {
+                        <li class="nav-item w-50 m-0">
+                            <a class="nav-link p-2 ps-3 text-nowrap fw-normal border-0 rounded-0 list-group-item-action @(user.IsOnline == true ? "active" : "")"
+                           href="javascript:;"
+                           @onclick="@(async () => await OnItemClick(user))">
+                                <span class="image rounded-circle" style="background-color: green" aria-hidden="true"></span>
+                                <span class="theme-name text-body">@user.UserName</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+    <div class="theme-settings-modal-backdrop modal-backdrop" onclick="xaf.closeOutsideClickController.hide('@MainElementId', '.theme-settings-modal-backdrop')"></div>
+</SizeModeContainer>
+
+<DxPopup @ref="chatPopup" HorizontalAlignment="HorizontalAlignment.Right"
+         VerticalAlignment="VerticalAlignment.Bottom"
+         Width="350" Height="400" ShowCloseButton="true" ShowHeader="true" ShowFooter="true"  
+         EnableAdaptivity = "true" Scrollable="true" 
+         @bind-Visible="@PopupVisible" 
+         @bind-HeaderText="@HeaderText">
+    <BodyContentTemplate>
+        <ul class="nav nav-pills" style="overflow:scroll;" id="chatContainer">
+            @if (GetChats.Any())
+            {
+                foreach (var item in GetChats)
+                {
+                    <li class="nav-item theme-group card rounded-0 border-top-0 border-start-0 border-end-0 w-100">Tin nhắn ngày: @item.CreatedDate</li>
+
+                    if (item.SubMessages.Any())
+                    {
+                        foreach (var sub in item.SubMessages.OrderBy(c=>c.CreatedDate))
+                        {
+                            <li class="nav-item w-100 alert @(sub.Owner.Oid == CurrentUser.Oid ? "alert-success text-right" : "alert-warning text-left")">
+                                <div>
+                                    <p>@sub.Message</p>
+                                    <i>@sub.CreatedDate</i>
+                                </div>
+                            </li>
+                        }
+                    }
+                }
+            }
+        </ul>
+    </BodyContentTemplate>
+    <FooterContentTemplate>
+        <DxMemo @ref="dxMessage" Rows="2" Columns="45"
+            ResizeMode="MemoResizeMode.Horizontal"
+            ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto" 
+            NullText="Nhập vào nội dung tin nhắn" />
+        <DxButton RenderStyle="ButtonRenderStyle.Primary" Click="@(async () => await OnSendClick())" Text="Gửi" />
+    </FooterContentTemplate>
+</DxPopup>
+
+@code {
+
+    [CascadingParameter] public HubConnection hubConnection { get; set; }
+
+    bool PopupVisible { get; set; }
+    string HeaderText { get; set; }
+    DxPopup chatPopup;
+    DxMemo dxMessage;
+    ApplicationUser CurrentUser { get; set; }
+    ApplicationUser FromUser { get; set; }
+    private static DevExpress.ExpressApp.IObjectSpace objectSpace;
+    private static DevExpress.ExpressApp.Blazor.BlazorApplication blazorApplication;
+    private string MainElementId { get; set; } = Guid.NewGuid().ToString();
+
+    IEnumerable<ChatMessage> GetChats { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JSRuntime.InvokeAsync<string>("ScrollToBottom", "chatContainer");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        blazorApplication = ApplicationProvider.GetApplication();
+        objectSpace = blazorApplication.CreateObjectSpace(typeof(ApplicationUser));
+
+        if (SecuritySystem.CurrentUser != null)
+        {
+            CurrentUser = SecuritySystem.CurrentUser as ApplicationUser;
+        }
+
+
+        if (hubConnection == null)
+        {
+            hubConnection = new HubConnectionBuilder().WithUrl(NavigationManager.ToAbsoluteUri("/signalRHub")).Build();
+        }
+        if (hubConnection.State == HubConnectionState.Disconnected)
+        {
+            await hubConnection.StartAsync();
+        }
+        hubConnection.On<ChatMessage, string>("ReceiveMessage", async (message, userName) =>
+        {
+            await hubConnection.SendAsync("ChatNotificationAsync", $"New Message From {userName}", FromUser.UserName, CurrentUser.UserName);
+            await JSRuntime.InvokeAsync<string>("ScrollToBottom", "chatContainer");
+            StateHasChanged();
+
+        });
+
+    }
+    /// <summary>
+    ///
+    /// </summary>
+    /// <param name="chat"></param>
+    /// <returns></returns>
+    private async Task OnSendClick()
+    {
+        try
+        {
+            ChatMessage message = objectSpace.FirstOrDefault<ChatMessage>(c => c.ToUser.Oid == CurrentUser.Oid && c.FromUser.Oid == FromUser.Oid && c.CreatedDate.Date == DateTime.Now.Date);
+
+            if (message == null)
+            {
+                objectSpace.CreateObject<ChatMessage>();
+                message.ToUser = objectSpace.GetObjectByKey<ApplicationUser>(CurrentUser.Oid);
+                message.FromUser = objectSpace.GetObjectByKey<ApplicationUser>(FromUser.Oid);
+                message.CreatedDate = DateTime.Now;
+                message.Save();
+            }
+
+            SubMessage sub = new SubMessage(message.Session);
+            sub.Chat = message;
+            sub.Message = dxMessage.Text;
+            sub.CreatedDate = DateTime.Now;
+            sub.Owner = objectSpace.GetObjectByKey<ApplicationUser>(CurrentUser.Oid);
+            sub.Save();
+
+            objectSpace.CommitChanges();
+
+            //if (hubConnection == null)
+            //{
+            //    hubConnection = new HubConnectionBuilder().WithUrl(NavigationManager.ToAbsoluteUri("/chatHub")).Build();
+            //}
+            //if (hubConnection.State == HubConnectionState.Disconnected)
+            //{
+            //    await hubConnection.StartAsync();
+            //}
+            //hubConnection.On<ChatMessage, string>("ReceiveMessage", async (message, userName) =>
+            //{
+            //    await hubConnection.SendAsync("ChatNotificationAsync", $"New Message From {userName}", FromUser.UserName, CurrentUser.UserName);
+            //    await JSRuntime.InvokeAsync<string>("ScrollToBottom", "chatContainer");
+            //    StateHasChanged();
+
+            //});
+
+            LoadChats();
+            dxMessage.Text = "";
+            dxMessage.FocusAsync();
+
+            await hubConnection.SendAsync("SendMessageAsync", message, CurrentUser.UserName);
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+
+            throw new Exception(ex.Message); 
+        }
+        
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="user"></param>
+    /// <returns></returns>
+    private async Task OnItemClick(ApplicationUser user)
+    {
+        PopupVisible = true;
+        HeaderText = user.UserName;
+        FromUser = user;
+        LoadChats();
+        await CloseDropDown();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    void LoadChats()
+    {
+        var data = objectSpace.GetObjects<ChatMessage>(CriteriaOperator.FromLambda<ChatMessage>(c => c.ToUser.Oid == CurrentUser.Oid));
+        if(data.Any())
+        {
+            GetChats = data;
+        }
+    }
+
+    private async Task CloseDropDown()
+    {
+        await JSRuntime.InvokeVoidAsync("xaf.closeOutsideClickController.toggle", MainElementId, ".theme-settings-modal-backdrop");
+    }
+}

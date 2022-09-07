@@ -1,0 +1,57 @@
+﻿@using DevExpress.Data.Filtering
+@using XAF_CHAT.Module.BusinessObjects
+
+@inject DevExpress.ExpressApp.Blazor.Services.IXafApplicationProvider ApplicationProvider
+@inject IJSRuntime JSRuntime
+
+
+<DxPopup HorizontalAlignment="HorizontalAlignment.Right"
+         VerticalAlignment="VerticalAlignment.Bottom"
+         Width="350" ShowCloseButton="true" ShowHeader="true" ShowFooter="true"
+         @bind-Visible="@Visible"
+         HeaderText="Header">
+         <HeaderContentTemplate>
+             <span>@FromUser.UserName</span>
+         </HeaderContentTemplate>
+         <BodyContentTemplate>
+             <span>Danh sách tin nhắn hiển thị ở đây</span>
+         </BodyContentTemplate>
+        <FooterContentTemplate Context="Context">
+
+         </FooterContentTemplate>
+</DxPopup>
+
+
+@code {
+    //FormDataItem editFormData = new() { Name = "Nancy Davolio", BirthDate = DateTime.Now.AddYears(-30), YearsWorked = 3, Position = "Sales Representative" };
+
+    private static DevExpress.ExpressApp.IObjectSpace objectSpace;
+    private static DevExpress.ExpressApp.Blazor.BlazorApplication blazorApplication;
+
+    public IEnumerable<ChatMessage> Messages { get; set; }
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public ApplicationUser ToUser { get; set; }
+
+    [Parameter]
+    public ApplicationUser FromUser { get; set; }
+
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        blazorApplication = ApplicationProvider.GetApplication();
+        objectSpace = blazorApplication.CreateObjectSpace(typeof(ChatMessage));
+
+        //Tải danh sách tin nhắn cũ trước đó đã gửi
+        if(FromUser != null && ToUser != null){
+            Messages = objectSpace.GetObjects<ChatMessage>(CriteriaOperator.FromLambda<ChatMessage>(c => c.ToUser == ToUser && c.FromUser == FromUser)).OrderBy(c => c.CreatedDate);
+        }
+    }
+
+
+}
