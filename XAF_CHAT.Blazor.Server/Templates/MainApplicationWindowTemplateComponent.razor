@@ -92,7 +92,7 @@
             if (CurrentUser.Oid.ToString() == receiverUserId)
             {
                 JSRuntime.InvokeAsync<string>("PlayAudio", "notification");
-
+                JSRuntime.InvokeVoidAsync("setTitle", message);
                 //JSRuntime.InvokeVoidAsync("setLoadingText", message);
                 //toastService.ShowSuccess(message);
                 //config =>

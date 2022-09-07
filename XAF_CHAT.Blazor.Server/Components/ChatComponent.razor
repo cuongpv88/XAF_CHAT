@@ -126,7 +126,6 @@
             await hubConnection.SendAsync("ChatNotificationAsync", $"New Message From {userName}", FromUserId, CurrentUserId);
             //await JSRuntime.InvokeAsync<string>("ScrollToBottom", "chatContainer");
             StateHasChanged();
-
         });
 
     }

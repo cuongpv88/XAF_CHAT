@@ -1,6 +1,8 @@
 ﻿using DevExpress.Data.Filtering;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Blazor.Services;
+using DevExpress.ExpressApp.Xpo;
+using DevExpress.Xpo;
 using System.ServiceModel.Channels;
 using XAF_CHAT.Module.BusinessObjects;
 
@@ -181,28 +183,29 @@ namespace XAF_CHAT.Blazor.Server.Services
         public async Task SaveMessageAsync(string message, Guid currentUserId, Guid fromUserId, ChatMessage chat)
         {
             //await HttpClient.PostAsJsonAsync("api/chat", message);
-            //XafApplication application = _applicationProvider.GetApplication();
-            //IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
-            //var ToUser = obs.GetObjectByKey<ApplicationUser>(currentUserId);
-            //var FromUser = obs.GetObjectByKey<ApplicationUser>(fromUserId);
+            XafApplication application = _applicationProvider.GetApplication();
+            IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
+            var ToUser = obs.GetObjectByKey<ApplicationUser>(currentUserId);
+            var FromUser = obs.GetObjectByKey<ApplicationUser>(fromUserId);
 
-            //if (chat == null)
-            //{
-            //    chat = obs.CreateObject<ChatMessage>();
-            //    chat.ToUser = ToUser;
-            //    chat.FromUser = FromUser;
-            //    chat.CreatedDate = DateTime.Now;
-            //    chat.Save();
-            //}
+            if (chat == null)
+            {
+                chat = obs.CreateObject<ChatMessage>();
+                chat.ToUser = ToUser;
+                chat.FromUser = FromUser;
+                chat.CreatedDate = DateTime.Now;
+                chat.Save();
+            }
+            Session session = ((XPObjectSpace)obs).Session;
 
-            //SubMessage sub = new SubMessage(chat.Session);
-            //sub.Chat = chat;
-            //sub.Message = message;
-            //sub.CreatedDate = DateTime.Now;
-            //sub.Owner = ToUser;
-            //sub.Save();
+            SubMessage sub = new SubMessage(session);
+            sub.Chat = obs.GetObjectByKey<ChatMessage>(chat.Oid);
+            sub.Message = message;
+            sub.CreatedDate = DateTime.Now;
+            sub.Owner = ToUser;
+            sub.Save();
 
-            //obs.CommitChanges();
+            obs.CommitChanges();
 
             await Task.CompletedTask;
         }
