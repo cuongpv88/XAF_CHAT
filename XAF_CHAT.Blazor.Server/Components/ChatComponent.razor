@@ -42,7 +42,8 @@
 <DxPopup @ref="chatPopup" HorizontalAlignment="HorizontalAlignment.Right"
          VerticalAlignment="VerticalAlignment.Bottom"
          Width="350" Height="400" ShowCloseButton="true" ShowHeader="true" ShowFooter="true"  
-         EnableAdaptivity = "true" Scrollable="true" 
+         EnableAdaptivity="true" Scrollable="true" 
+         BodyCssClass="overflow-auto"
          @bind-Visible="@PopupVisible" 
          @bind-HeaderText="@HeaderText">
     <BodyContentTemplate>
@@ -70,7 +71,7 @@
         </ul>
     </BodyContentTemplate>
     <FooterContentTemplate>
-        <DxMemo @ref="dxMessage" Rows="2" Columns="45"
+        <DxMemo @ref="dxMessage" Rows="2" Columns="30"
             ResizeMode="MemoResizeMode.Horizontal"
             ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto" 
             NullText="Nhập vào nội dung tin nhắn" />
