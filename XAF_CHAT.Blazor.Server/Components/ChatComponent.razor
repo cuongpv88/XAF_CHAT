@@ -59,7 +59,7 @@
                         {
                             <li class="nav-item w-100 alert @(sub.Owner.Oid == CurrentUserId ? "alert-success text-right" : "alert-warning text-left")">
                                 <div>
-                                    <p>@sub.Message</p>
+                                    <p><b>@sub.Owner.UserName</b> : @sub.Message</p>
                                     <i>@sub.CreatedDate</i>
                                 </div>
                             </li>
@@ -140,9 +140,9 @@
         try
         {
             string strMessage = dxMessage.Text;
-            ChatMessage message = _chatManager.GetChatAsync(CurrentUserId, FromUserId).GetAwaiter().GetResult();
+            //ChatMessage message = _chatManager.GetChatAsync(CurrentUserId, FromUserId).GetAwaiter().GetResult();
 
-            _chatManager.SaveMessageAsync(strMessage, CurrentUserId, FromUserId, message).GetAwaiter().GetResult();
+            _chatManager.SaveMessageAsync(strMessage, CurrentUserId, FromUserId).GetAwaiter().GetResult();
 
             LoadChats();
             dxMessage.Text = "";

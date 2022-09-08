@@ -30,10 +30,12 @@
     <PackageReference Include="DevExpress.ExpressApp.ReportsV2.Blazor" Version="22.1.5-pre-22228" />
     <PackageReference Include="DevExpress.ExpressApp.Security.Xpo" Version="22.1.5-pre-22228" />
     <PackageReference Include="DevExpress.ExpressApp.Validation.Blazor" Version="22.1.5-pre-22228" />
-	<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.0" />
+	<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.8" />
 	<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.8" />
-	<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.1.4" />
-	<PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
+	<PackageReference Include="RestSharp" Version="108.0.1" />
+	<PackageReference Include="RestSharp.Serializers.NewtonsoftJson" Version="108.0.1" />
+	<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.4.0" />
+	<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\XAF_CHAT.Module\XAF_CHAT.Module.csproj" />

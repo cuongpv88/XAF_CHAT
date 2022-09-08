@@ -76,6 +76,7 @@
     }
 
     public ApplicationUser CurrentUser { get; set; } = SecuritySystem.CurrentUser as ApplicationUser;
+    public string CurrentUserId { get; set; } = SecuritySystem.CurrentUserId.ToString();
     private HubConnection hubConnection;
     public bool IsConnected => hubConnection.State == HubConnectionState.Connected;
 
@@ -85,11 +86,12 @@
     /// <returns></returns>
     protected override async Task OnInitializedAsync()
     {
+
         hubConnection = new HubConnectionBuilder().WithUrl(NavigationManager.ToAbsoluteUri("/chatHub")).Build();
         await hubConnection.StartAsync();
         hubConnection.On<string, string, string>("ReceiveChatNotification", (message, receiverUserId, senderUserId) =>
         {
-            if (CurrentUser.Oid.ToString() == receiverUserId)
+            if (receiverUserId.Equals(CurrentUserId))
             {
                 JSRuntime.InvokeAsync<string>("PlayAudio", "notification");
                 JSRuntime.InvokeVoidAsync("setTitle", message);

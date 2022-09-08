@@ -41,6 +41,12 @@ public class ApplicationUser : PermissionPolicyUser, IObjectSpaceLink, ISecurity
     }
 
 
+    private CustomFileData _Avatar;
+    public CustomFileData Avatar
+    {
+        get { return _Avatar; }
+        set { SetPropertyValue<CustomFileData>(nameof(Avatar), ref _Avatar, value); }
+    }
 
 
     [Browsable(false)]

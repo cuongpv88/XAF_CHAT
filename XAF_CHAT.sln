@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XAF_CHAT.Win", "XAF_CHAT.Wi
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XAF_CHAT.Blazor.Server", "XAF_CHAT.Blazor.Server\XAF_CHAT.Blazor.Server.csproj", "{06713D24-8FE3-4894-A790-FF02E8A7BC11}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileSystemData", "FileSystemData\FileSystemData.csproj", "{9322381A-EF76-4913-A37E-EE37F70C4F36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,6 +44,12 @@ Global
 		{06713D24-8FE3-4894-A790-FF02E8A7BC11}.EasyTest|Any CPU.Build.0 = EasyTest|Any CPU
 		{06713D24-8FE3-4894-A790-FF02E8A7BC11}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{06713D24-8FE3-4894-A790-FF02E8A7BC11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9322381A-EF76-4913-A37E-EE37F70C4F36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9322381A-EF76-4913-A37E-EE37F70C4F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9322381A-EF76-4913-A37E-EE37F70C4F36}.EasyTest|Any CPU.ActiveCfg = Debug|Any CPU
+		{9322381A-EF76-4913-A37E-EE37F70C4F36}.EasyTest|Any CPU.Build.0 = Debug|Any CPU
+		{9322381A-EF76-4913-A37E-EE37F70C4F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9322381A-EF76-4913-A37E-EE37F70C4F36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

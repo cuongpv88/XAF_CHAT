@@ -3,7 +3,10 @@ using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Blazor.Services;
 using DevExpress.ExpressApp.Xpo;
 using DevExpress.Xpo;
+using RestSharp;
+using RestSharp.Serializers.NewtonsoftJson;
 using System.ServiceModel.Channels;
+using System.Threading;
 using XAF_CHAT.Module.BusinessObjects;
 
 namespace XAF_CHAT.Blazor.Server.Services
@@ -56,31 +59,16 @@ namespace XAF_CHAT.Blazor.Server.Services
     public class ChatManager : IChatManager
     {
         private readonly IServiceProvider _serviceProvider;
-        private HttpClient _httpClient;
-        private readonly IXafApplicationProvider _applicationProvider;
+        //private HttpClient _httpClient;
         public ChatManager(
-            IXafApplicationProvider applicationProvider,
-            IServiceProvider serviceProvider,
-            HttpClient httpClient)
+            IServiceProvider serviceProvider
+            /*HttpClient httpClient*/)
         {
-            _applicationProvider = applicationProvider;
             _serviceProvider = serviceProvider;
-            _httpClient = httpClient;
+            //_httpClient = httpClient;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        //public HttpClient HttpClient 
-        //{
-        //    get
-        //    {
-        //        HttpContext context = _serviceProvider.GetService<IHttpContextAccessor>().HttpContext;
-        //        _httpClient.BaseAddress = new Uri($"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}");
 
-        //        return _httpClient;
-        //    }
-        //}
 
         /// <summary>
         /// 
@@ -89,10 +77,20 @@ namespace XAF_CHAT.Blazor.Server.Services
         /// <returns></returns>
         public async Task<IList<ChatMessage>> GetChatsAsync(Guid currentUserID, Guid fromUserID)
         {
-            XafApplication application = _applicationProvider.GetApplication();
+            XafApplication application = _serviceProvider.GetService<IXafApplicationProvider>().GetApplication();
             IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
 
-            return obs.GetObjects<ChatMessage>(CriteriaOperator.FromLambda<ChatMessage>(c => c.ToUser.Oid == currentUserID && c.FromUser.Oid == fromUserID));
+            return obs.GetObjects<ChatMessage>(CriteriaOperator.FromLambda<ChatMessage>(c => c.CreatedDate.Date == DateTime.Now.Date))
+                .OrderBy(c => c.CreatedDate).ToList();
+            //HttpContext context = _serviceProvider.GetService<IHttpContextAccessor>().HttpContext;
+            //Uri uri = new Uri($"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}");
+            //var client = new RestClient(uri + "/api/odata").UseNewtonsoftJson();
+            //var request = new RestRequest("ChatMessage");
+            //var response = await client.GetAsync<ODataResponse<ChatMessage>>(request);
+            ////response.Value.Any()
+
+            //        return response.Value;
+
             //return await HttpClient.GetFromJsonAsync<List<ChatMessage>>($"api/chat/{contactId}");
         }
 
@@ -103,10 +101,10 @@ namespace XAF_CHAT.Blazor.Server.Services
         /// <returns></returns>
         public async Task<ChatMessage> GetChatAsync(Guid currentUserID, Guid fromUserID)
         {
-            XafApplication application = _applicationProvider.GetApplication();
+            XafApplication application = _serviceProvider.GetService<IXafApplicationProvider>().GetApplication();
             IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
 
-            return obs.FirstOrDefault<ChatMessage>(c => c.ToUser.Oid == currentUserID && c.FromUser.Oid == fromUserID && c.CreatedDate.Date == DateTime.Now.Date);
+            return obs.FirstOrDefault<ChatMessage>(c => c.CreatedDate.Date == DateTime.Now.Date);
             //return await HttpClient.GetFromJsonAsync<List<ChatMessage>>($"api/chat/{contactId}");
         }
 
@@ -134,9 +132,16 @@ namespace XAF_CHAT.Blazor.Server.Services
             //HttpContext context = _serviceProvider.GetService<IHttpContextAccessor>().HttpContext;
             //var data = await HttpClient.GetFromJsonAsync<List<ApplicationUser>>("/api/odata/ApplicationUser");
 
-            XafApplication application = _applicationProvider.GetApplication();
+            XafApplication application = _serviceProvider.GetService<IXafApplicationProvider>().GetApplication();
             IObjectSpace obs = application.CreateObjectSpace(typeof(ApplicationUser));
             return obs.GetObjects<ApplicationUser>(CriteriaOperator.FromLambda<ApplicationUser>(c => c.Oid != currentUserId));
+            //HttpContext context = _serviceProvider.GetService<IHttpContextAccessor>().HttpContext;
+            //Uri uri = new Uri($"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}");
+            //var client = new RestClient(uri + "/api/odata").UseNewtonsoftJson();
+            //var request = new RestRequest("ApplicationUser");
+            //var response = await client.GetAsync<ODataResponse<ApplicationUser>>(request);
+            //return response.Value;
+
         }
 
         /// <summary>
@@ -147,14 +152,21 @@ namespace XAF_CHAT.Blazor.Server.Services
         public async Task SaveMessageAsync(string message, Guid currentUserId, Guid fromUserId)
         {
             //await HttpClient.PostAsJsonAsync("api/chat", message);
-            XafApplication application = _applicationProvider.GetApplication();
+            XafApplication application = _serviceProvider.GetService<IXafApplicationProvider>().GetApplication();
             IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
 
             var ToUser = obs.GetObjectByKey<ApplicationUser>(currentUserId);
             var FromUser = obs.GetObjectByKey<ApplicationUser>(fromUserId);
 
-            ChatMessage chat = GetChatAsync(currentUserId, fromUserId).GetAwaiter().GetResult();
+            Session session = ((XPObjectSpace)obs).Session;
+            SubMessage sub = new SubMessage(session);
+            sub.Message = message;
+            sub.CreatedDate = DateTime.Now;
+            sub.Owner = ToUser;
+            sub.Save();
+            obs.CommitChanges();
 
+            ChatMessage chat = GetChatAsync(currentUserId, fromUserId).GetAwaiter().GetResult();
             if (chat == null)
             {
                 chat = obs.CreateObject<ChatMessage>();
@@ -162,15 +174,10 @@ namespace XAF_CHAT.Blazor.Server.Services
                 chat.FromUser = FromUser;
                 chat.CreatedDate = DateTime.Now;
                 chat.Save();
+                obs.CommitChanges();
             }
 
-            SubMessage sub = new SubMessage(chat.Session);
-            sub.Chat = chat;
-            sub.Message = message;
-            sub.CreatedDate = DateTime.Now;
-            sub.Owner = FromUser;
-            sub.Save();
-
+            sub.Chat = obs.GetObjectByKey<ChatMessage>(chat.Oid);
             obs.CommitChanges();
             await Task.CompletedTask;
         }
@@ -183,7 +190,7 @@ namespace XAF_CHAT.Blazor.Server.Services
         public async Task SaveMessageAsync(string message, Guid currentUserId, Guid fromUserId, ChatMessage chat)
         {
             //await HttpClient.PostAsJsonAsync("api/chat", message);
-            XafApplication application = _applicationProvider.GetApplication();
+            XafApplication application = _serviceProvider.GetService<IXafApplicationProvider>().GetApplication();
             IObjectSpace obs = application.CreateObjectSpace(typeof(ChatMessage));
             var ToUser = obs.GetObjectByKey<ApplicationUser>(currentUserId);
             var FromUser = obs.GetObjectByKey<ApplicationUser>(fromUserId);
@@ -199,7 +206,7 @@ namespace XAF_CHAT.Blazor.Server.Services
             Session session = ((XPObjectSpace)obs).Session;
 
             SubMessage sub = new SubMessage(session);
-            sub.Chat = obs.GetObjectByKey<ChatMessage>(chat.Oid);
+            sub.Chat = chat;
             sub.Message = message;
             sub.CreatedDate = DateTime.Now;
             sub.Owner = ToUser;
